@@ -1,0 +1,69 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: pg-docker
+    restart: no
+    ports:
+      - "15432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: warehouse
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:latest
+    container_name: redis-docker
+    restart: no
+    ports:
+      - '16379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass abc123456789
+    volumes: 
+      - redisdata:/data
+  
+  grafana:
+    image: grafana/grafana-enterprise:latest
+    container_name: grafana-docker
+    restart: no
+    ports:
+      - '3000:3000'
+    volumes:
+      - grafana-storage:/var/lib/postgresql/data
+  
+  api:
+    image: weather-api:1.0.1
+    container_name: weather-api-docker
+    depends_on:
+      - redis
+    restart: no
+    ports:
+      - "8000:8000"
+    environment:
+      REDIS_HOST: 'redis'
+      REDIS_PASSWORD: 'abc123456789'
+      REDIS_USERNAME: 'default'
+      REDIS_PORT: 6379
+
+  exp-weather:
+    image: exp-weather:1.0.1
+    container_name: exp-weather-docker
+    depends_on:
+      - api
+    restart: no
+    environment:
+      API_HOST: 'api'
+      API_PORT: 8000
+      POSTGRES_HOST: 'postgres'
+      POSTGRES_PORT: 5432
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: warehouse
+
+
+volumes:
+  pgdata:
+  redisdata:
+  grafana-storage:
